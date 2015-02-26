@@ -22,6 +22,7 @@
 
 #include <SDL2/SDL.h>
 
+#include <iostream>
 #include <string>
 #include <fstream>
 using std::string;
@@ -30,6 +31,13 @@ using std::ifstream;
 #include "ShaderProgram.h"
 #include "DotMaker.h"
 #include "Line_rasterizer.h"
+#include "Edge_rasterizer.h"
+#include <algorithm>
+
+// Struct for at coordinate/pixel
+struct point_xy {
+	int x,y;
+};
 
 /**
 * Use this function to define keyboard control of the window.
@@ -39,6 +47,11 @@ using std::ifstream;
 static void controlScene(int key)
 {
 	if(key == SDLK_1) {}
+}
+
+static bool under(point_xy p1, point_xy p2)
+{
+	return p1.y < p2.y;
 }
 
 static void drawLine(int x1, int y1, int x2, int y2)
@@ -53,6 +66,114 @@ static void drawLine(int x1, int y1, int x2, int y2)
 	}
 }
 
+static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
+{
+	// init the left and right rasterizer
+	Edge_rasterizer *rasterizerLeft = new Edge_rasterizer();
+	Edge_rasterizer *rasterizerRight = new Edge_rasterizer();
+
+	if (y1 == y2)
+	{
+		// The triangle is horizontal
+		// Check to see if the horizontal edge is in the top of the triangle or in bottom of the triangle
+		if (y1 > y3)
+		{
+			rasterizerLeft->init(x3,y3, x1,y1);
+		    rasterizerRight->init(x3,y3, x2,y2);
+		}
+		else
+		{
+			rasterizerLeft->init(x1,y1, x3,y3);
+			rasterizerRight->init(x2,y2, x3,y3);
+		}
+	}
+	else if (y1 == y3)
+	{
+		// The triangle is horizontal
+		// Check to see if the horizontal edge is in the top of the triangle or in bottom of the triangle
+		if (y1 > y2)
+		{
+			rasterizerLeft->init(x2,y2, x3,y3);
+			rasterizerRight->init(x2,y2, x1,y1);
+		}
+		else
+		{
+			rasterizerLeft->init(x1,y1, x2,y2);
+			rasterizerRight->init(x3,y3, x2,y2);
+		}
+	}
+	else if ( y2 == y3)
+	{
+		// The triangle is horizontal
+		// Check to see if the horizontal edge is in the top of the triangle or in bottom of the triangle
+		if (y2 > y1)
+		{
+			rasterizerLeft->init(x1,y1, x2,y2);
+			rasterizerRight->init(x1,y1, x3,y3);
+		}
+		else
+		{
+			rasterizerLeft->init(x2,y2, x1,y1);
+			rasterizerRight->init(x3,y3, x1,y1);
+		}
+	}
+	else
+	{
+		// The triangle is not horizontal
+
+		point_xy p1, p2, p3;
+		p1.x = x1;
+		p1.y = y1;
+		p2.x = x2;
+		p2.y = y2;
+		p3.x = x3;
+		p3.y = y3;
+
+		const int SIZE = 3;
+		point_xy ys[SIZE] = {p1,p2,p3};
+		std::sort(ys, ys + SIZE, under);
+
+		rasterizerLeft->init(ys[0].x,ys[0].y, ys[2].x,ys[2].y);
+		rasterizerRight->init(ys[0].x,ys[0].y, ys[1].x,ys[1].y, ys[2].x,ys[2].y); 
+
+	}
+
+	// Run next_fragment until there are no more fragments left
+	while(rasterizerLeft->more_fragments() && rasterizerRight->more_fragments())
+	{
+		// Get current coordinates
+		int left_x = rasterizerLeft->x();
+		int left_y = rasterizerLeft->y();
+
+		int right_x = rasterizerRight->x();
+		int right_y = rasterizerRight->y();
+
+		int cur_left_x = left_x;
+		int cur_right_x = right_x;
+
+		// Checks that left is actually left and right is right
+		if(left_x > right_x)
+		{
+			// If not, then switch them
+			cur_left_x = right_x;
+			cur_right_x = left_x;
+		}
+
+		cur_left_x;
+		// Draw the pixels between the left and right edge
+		while(cur_left_x <= cur_right_x)
+		{
+			DotMaker::instance()->drawDot(cur_left_x, left_y);
+			cur_left_x++;
+		}
+
+		// Go to next fragment
+		rasterizerLeft->next_fragment();
+		rasterizerRight->next_fragment();
+
+	}
+
+}
 
 static void drawScene(GLuint shaderID)
 {
@@ -70,7 +191,13 @@ static void drawScene(GLuint shaderID)
 	DotMaker::instance()->setScene(800, 600, 15, true);
 	DotMaker::instance()->setColor(1.0f, 0.0f, 0.0f);
 
-	drawLine(0,0 , 17,10);
+	//drawTriangle(1,1 , 10,15, 17,7);
+	//drawTriangle(1,1 , 17,7, 10,15);
+	//drawTriangle(17,7 , 1,1, 10,15);
+	//drawTriangle(1,17 , 10,1, 17,17);
+	//drawTriangle(0,0, 10,0 ,5,10);
+	//drawTriangle(1,10,10,10,5,1);
+	drawTriangle(1,1,11,3,5,10);
 
 	glFlush();
 }

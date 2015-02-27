@@ -34,7 +34,7 @@ using std::ifstream;
 #include "Edge_rasterizer.h"
 #include <algorithm>
 
-// Struct for at coordinate/pixel
+// Struct for a coordinate/pixel
 struct point_xy {
 	int x,y;
 };
@@ -49,7 +49,8 @@ static void controlScene(int key)
 	if(key == SDLK_1) {}
 }
 
-static bool under(point_xy p1, point_xy p2)
+// Checks which y-coordinate has the highest value (used for sorting the coordinates)
+static bool greaterThan_y(point_xy p1, point_xy p2)
 {
 	return p1.y < p2.y;
 }
@@ -72,82 +73,45 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
 	Edge_rasterizer *rasterizerLeft = new Edge_rasterizer();
 	Edge_rasterizer *rasterizerRight = new Edge_rasterizer();
 
-	if (y1 == y2)
-	{
-		// The triangle is horizontal
-		// Check to see if the horizontal edge is in the top of the triangle or in bottom of the triangle
-		if (y1 > y3)
+	// Creates new points (using the point_xy struct) from the given coordinates
+	point_xy p1, p2, p3;
+	p1.x = x1;	p1.y = y1;
+	p2.x = x2;	p2.y = y2;
+	p3.x = x3;	p3.y = y3;
+
+	// Creates a new array containing the three points, and sorts them in ascending order by y-coordinate
+	const int SIZE = 3;
+	point_xy ys[SIZE] = {p1,p2,p3};
+	std::sort(ys, ys + SIZE, greaterThan_y);
+
+		// The following if-statements determine which kind of triangle we are dealing with
+		if (ys[1].y == ys[0].y)
 		{
-			rasterizerLeft->init(x3,y3, x1,y1);
-		    rasterizerRight->init(x3,y3, x2,y2);
+			// The triangle is horizontal, and the triangle's "peak" is at the top
+			rasterizerLeft->init(ys[0].x,ys[0].y, ys[2].x,ys[2].y);
+		    rasterizerRight->init(ys[1].x,ys[1].y, ys[2].x,ys[2].y);
+		}
+		else if (ys[1].y == ys[2].y)
+		{
+			// The triangle is horizontal, and the triangle's "peak" is at the bottom
+			rasterizerLeft->init(ys[0].x,ys[0].y, ys[1].x,ys[1].y);
+		    rasterizerRight->init(ys[0].x,ys[0].y, ys[2].x,ys[2].y);
 		}
 		else
 		{
-			rasterizerLeft->init(x1,y1, x3,y3);
-			rasterizerRight->init(x2,y2, x3,y3);
+			// The triangle is not horizontal
+			rasterizerLeft->init(ys[0].x,ys[0].y, ys[2].x,ys[2].y);
+			rasterizerRight->init(ys[0].x,ys[0].y, ys[1].x,ys[1].y, ys[2].x,ys[2].y); 
 		}
-	}
-	else if (y1 == y3)
-	{
-		// The triangle is horizontal
-		// Check to see if the horizontal edge is in the top of the triangle or in bottom of the triangle
-		if (y1 > y2)
-		{
-			rasterizerLeft->init(x2,y2, x3,y3);
-			rasterizerRight->init(x2,y2, x1,y1);
-		}
-		else
-		{
-			rasterizerLeft->init(x1,y1, x2,y2);
-			rasterizerRight->init(x3,y3, x2,y2);
-		}
-	}
-	else if ( y2 == y3)
-	{
-		// The triangle is horizontal
-		// Check to see if the horizontal edge is in the top of the triangle or in bottom of the triangle
-		if (y2 > y1)
-		{
-			rasterizerLeft->init(x1,y1, x2,y2);
-			rasterizerRight->init(x1,y1, x3,y3);
-		}
-		else
-		{
-			rasterizerLeft->init(x2,y2, x1,y1);
-			rasterizerRight->init(x3,y3, x1,y1);
-		}
-	}
-	else
-	{
-		// The triangle is not horizontal
-
-		point_xy p1, p2, p3;
-		p1.x = x1;
-		p1.y = y1;
-		p2.x = x2;
-		p2.y = y2;
-		p3.x = x3;
-		p3.y = y3;
-
-		const int SIZE = 3;
-		point_xy ys[SIZE] = {p1,p2,p3};
-		std::sort(ys, ys + SIZE, under);
-
-		rasterizerLeft->init(ys[0].x,ys[0].y, ys[2].x,ys[2].y);
-		rasterizerRight->init(ys[0].x,ys[0].y, ys[1].x,ys[1].y, ys[2].x,ys[2].y); 
-
-	}
 
 	// Run next_fragment until there are no more fragments left
 	while(rasterizerLeft->more_fragments() && rasterizerRight->more_fragments())
 	{
 		// Get current coordinates
-		int left_x = rasterizerLeft->x();
-		int left_y = rasterizerLeft->y();
+		int left_x = rasterizerLeft->x(); int left_y = rasterizerLeft->y();
+		int right_x = rasterizerRight->x();	int right_y = rasterizerRight->y();
 
-		int right_x = rasterizerRight->x();
-		int right_y = rasterizerRight->y();
-
+		// Increment values used in upcoming loop
 		int cur_left_x = left_x;
 		int cur_right_x = right_x;
 
@@ -159,7 +123,6 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
 			cur_right_x = left_x;
 		}
 
-		cur_left_x;
 		// Draw the pixels between the left and right edge
 		while(cur_left_x <= cur_right_x)
 		{
@@ -170,9 +133,7 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
 		// Go to next fragment
 		rasterizerLeft->next_fragment();
 		rasterizerRight->next_fragment();
-
 	}
-
 }
 
 static void drawScene(GLuint shaderID)
@@ -191,13 +152,12 @@ static void drawScene(GLuint shaderID)
 	DotMaker::instance()->setScene(800, 600, 15, true);
 	DotMaker::instance()->setColor(1.0f, 0.0f, 0.0f);
 
-	//drawTriangle(1,1 , 10,15, 17,7);
-	//drawTriangle(1,1 , 17,7, 10,15);
-	//drawTriangle(17,7 , 1,1, 10,15);
-	//drawTriangle(1,17 , 10,1, 17,17);
-	//drawTriangle(0,0, 10,0 ,5,10);
-	//drawTriangle(1,10,10,10,5,1);
-	drawTriangle(1,1,11,3,5,10);
+	// Tests
+	drawTriangle(0,0, 10,0 ,10,10); // Horizontal triangle with "peak" at top AND vertical edge
+	//drawTriangle(0,0, 10,0 ,5,10); // Horizontal triangle with "peak" at top
+	//drawTriangle(1,10,10,10,5,1); // Horizontal triangle with "peak" at bottom
+	//drawTriangle(1,1,11,3,5,10); // The triangle from the slides
+	//drawTriangle(1,5, 11,1 ,11,10); // Triangle with vertical edge
 
 	glFlush();
 }

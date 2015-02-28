@@ -124,7 +124,7 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
 		}
 
 		// Draw the pixels between the left and right edge
-		while(cur_left_x <= cur_right_x)
+		while(cur_left_x < cur_right_x)
 		{
 			DotMaker::instance()->drawDot(cur_left_x, left_y);
 			cur_left_x++;
@@ -153,11 +153,17 @@ static void drawScene(GLuint shaderID)
 	DotMaker::instance()->setColor(1.0f, 0.0f, 0.0f);
 
 	// Tests
-	drawTriangle(0,0, 10,0 ,10,10); // Horizontal triangle with "peak" at top AND vertical edge
+	//drawTriangle(0,0, 10,0 ,10,10); // Horizontal triangle with "peak" at top AND vertical edge
 	//drawTriangle(0,0, 10,0 ,5,10); // Horizontal triangle with "peak" at top
 	//drawTriangle(1,10,10,10,5,1); // Horizontal triangle with "peak" at bottom
-	//drawTriangle(1,1,11,3,5,10); // The triangle from the slides
 	//drawTriangle(1,5, 11,1 ,11,10); // Triangle with vertical edge
+	
+	//drawTriangle(1,1 , 11,1 , 7,10); // The "white" triangle
+	//drawTriangle(1,10 , 11,10 , 5,1); // The "green" triangle 
+	drawTriangle(11,10 , 1,5 , 5,1); // The "red" triangle
+	//drawTriangle(1,1 , 11,3 , 5,10); // The triangle from the slides ("blue" triangle)
+	//drawTriangle(1,1 , 7,1 , 1,8); // Horizontal triangle with "peak" at top AND vertical edge
+	//drawTriangle(1,8 , 7,8 , 7,1); // Horizontal triangle with "peak" at bottom AND vertical edge
 
 	glFlush();
 }

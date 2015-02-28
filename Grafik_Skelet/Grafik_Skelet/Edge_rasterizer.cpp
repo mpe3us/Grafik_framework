@@ -61,9 +61,6 @@ bool Edge_rasterizer::more_fragments() const
 
 void Edge_rasterizer::next_fragment()
 {
-	// Draws the current pixel at the edge of line 
-	//DotMaker::instance()->drawDot(x_current, y_current);
-
 	this->y_current += this->y_step;
 	if (this->y_current >= this->y_stop) {
 		if (!(this->two_edges)) {

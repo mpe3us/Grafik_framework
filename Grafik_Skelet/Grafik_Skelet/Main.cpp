@@ -160,8 +160,8 @@ static void drawScene(GLuint shaderID)
 	
 	//drawTriangle(1,1 , 11,1 , 7,10); // The "white" triangle
 	//drawTriangle(1,10 , 11,10 , 5,1); // The "green" triangle 
-	drawTriangle(11,10 , 1,5 , 5,1); // The "red" triangle
-	//drawTriangle(1,1 , 11,3 , 5,10); // The triangle from the slides ("blue" triangle)
+	//drawTriangle(11,10 , 1,5 , 5,1); // The "red" triangle
+	drawTriangle(1,1 , 11,3 , 5,10); // The triangle from the slides ("blue" triangle)
 	//drawTriangle(1,1 , 7,1 , 1,8); // Horizontal triangle with "peak" at top AND vertical edge
 	//drawTriangle(1,8 , 7,8 , 7,1); // Horizontal triangle with "peak" at bottom AND vertical edge
 

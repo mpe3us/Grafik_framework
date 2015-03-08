@@ -33,6 +33,9 @@ using std::ifstream;
 #include "Line_rasterizer.h"
 #include "Edge_rasterizer.h"
 #include <algorithm>
+#include "House.h"
+#include "glmutils.h"
+#include "Camera.h"
 
 // Struct for a coordinate/pixel
 struct point_xy {
@@ -148,9 +151,73 @@ static void drawScene(GLuint shaderID)
 
 	glUseProgram(shaderID);
 
+	// Camera values
+	/* Eksempel 1 
+	glm::vec3 vrp(0.0f, 0.0f, 0.0f);
+	glm::vec3 vpn(0.0f, 0.0f, 1.0f);
+	glm::vec3 vup(0.0f, 1.0f, 0.0f);
+	glm::vec3 prp(8.0f, 6.0f, 84.0f);
+	glm::vec2 lower_left(-50.0f, -50.0f);
+	glm::vec2 upper_right(50.0f, 50.0f);
+	float front_plane = 60.0f;
+	float back_plane = 25.0f; 
+	/* Eksempel 2
+	glm::vec3 vrp(0.0f, 0.0f, 54.0f);
+	glm::vec3 vpn(0.0f, 0.0f, 1.0f);
+	glm::vec3 vup(0.0f, 1.0f, 0.0f);
+	glm::vec3 prp(8.0f, 6.0f, 30.0f);
+	glm::vec2 lower_left( -1.0, -1.0);
+	glm::vec2 upper_right(17.0, 17.0);
+	float front_plane = 1.0f;
+	float back_plane = -35.0f; */
+	/* Eksempel 3
+	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
+	glm::vec3 vpn( 0.0f, 0.0f, 1.0f);
+	glm::vec3 vup( 0.0f, 1.0f, 0.0f);
+	glm::vec3 prp(20.0f, 25.0f, 20.0f);
+	glm::vec2 lower_left( -20.0, -5.0);
+	glm::vec2 upper_right(20.0, 35.0);
+	float front_plane = 1.0f;
+	float back_plane = -35.0f; */
+	/* Eksempel 4
+	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
+	glm::vec3 vpn( 1.0f, 0.0f, 1.0f);
+	glm::vec3 vup( 0.0f, 1.0f, 0.0f);
+	glm::vec3 prp( 0.0f, 25.0f, 20.0f * sqrt(2.0));
+	glm::vec2 lower_left( -20.0, -5.0);
+	glm::vec2 upper_right(20.0, 35.0);
+	float front_plane = 1.0f;
+	float back_plane = -35.0f; */
+	// Eksempel 5
+	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
+	glm::vec3 vpn( 1.0f, 0.0f, 1.0f);
+	glm::vec3 vup( -sin(10.0 * M_PI / 180.0), cos(10.0 * M_PI / 180.0), sin(10.0 * M_PI / 180.0));
+	glm::vec3 prp( 0.0f, 25.0f, 20.0f * sqrt(2.0));
+	glm::vec2 lower_left( -20.0, -5.0);
+	glm::vec2 upper_right(20.0, 35.0);
+	float front_plane = 1.0f;
+	float back_plane = -35.0f;
+
+	// Init the camera with the defined values
+	Camera *camera = new Camera(vrp, vpn, vup, prp, lower_left, upper_right, front_plane, back_plane, 800, 600);
+
+    // Set the shader matrix
+    glm::mat4 tMat = camera->CurrentTransformationMatrix();
+    GLuint dir;
+    dir = glGetUniformLocation(shaderID, "uModelMatrix");
+    if (dir >= 0){
+      glUniformMatrix4fv(dir, 1, GL_FALSE, &tMat[0][0]);
+    }
+		
+	// Draw the house
+	House *house = new House();
+	house->init();
+
+	/*
 	DotMaker::instance()->setColor(1.0f, 1.0f, 1.0f);
 	DotMaker::instance()->setScene(800, 600, 15, true);
 	DotMaker::instance()->setColor(1.0f, 0.0f, 0.0f);
+	*/
 
 	// Tests
 	//drawTriangle(0,0, 10,0 ,10,10); // Horizontal triangle with "peak" at top AND vertical edge
@@ -161,7 +228,7 @@ static void drawScene(GLuint shaderID)
 	//drawTriangle(1,1 , 11,1 , 7,10); // The "white" triangle
 	//drawTriangle(1,10 , 11,10 , 5,1); // The "green" triangle 
 	//drawTriangle(11,10 , 1,5 , 5,1); // The "red" triangle
-	drawTriangle(1,1 , 11,3 , 5,10); // The triangle from the slides ("blue" triangle)
+	//drawTriangle(1,1 , 11,3 , 5,10); // The triangle from the slides ("blue" triangle)
 	//drawTriangle(1,1 , 7,1 , 1,8); // Horizontal triangle with "peak" at top AND vertical edge
 	//drawTriangle(1,8 , 7,8 , 7,1); // Horizontal triangle with "peak" at bottom AND vertical edge
 
@@ -269,6 +336,7 @@ int main(int argc, char *argv[])
 	SDL_GL_DeleteContext(glContext);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
+	
 
 	return 0;
 }

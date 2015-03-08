@@ -87,14 +87,20 @@
     <None Include="..\..\..\..\..\Dropbox\My_stuff\Datalogi\3.år\Blok_3\Afleveringer\Skeletter1.2\SDL2_OpenGL33\Shader.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="DotMaker.h" />
     <ClInclude Include="Edge_rasterizer.h" />
+    <ClInclude Include="glmutils.h" />
+    <ClInclude Include="House.h" />
     <ClInclude Include="Line_rasterizer.h" />
     <ClInclude Include="ShaderProgram.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DotMaker.cpp" />
     <ClCompile Include="Edge_rasterizer.cpp" />
+    <ClCompile Include="glmutils.cpp" />
+    <ClCompile Include="House.cpp" />
     <ClCompile Include="Line_rasterizer.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />

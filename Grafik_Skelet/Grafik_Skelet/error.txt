@@ -1,0 +1,6 @@
+Fatal: Error compiling shader type 35633: 0(28) : error C1008: undefined variable "curNormal_vec"
+
+Fatal: Error compiling shader type 35633: 0(28) : error C1008: undefined variable "curNormal_vec"
+
+Fatal: Error compiling shader type 35632: 0(28) : error C1008: undefined variable "curNormal_vec"
+

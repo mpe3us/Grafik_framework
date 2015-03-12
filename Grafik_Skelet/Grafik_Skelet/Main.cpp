@@ -36,6 +36,7 @@ using std::ifstream;
 #include "House.h"
 #include "glmutils.h"
 #include "Camera.h"
+#include "Triangle.h"
 
 // Struct for a coordinate/pixel
 struct point_xy {
@@ -188,7 +189,7 @@ static void drawScene(GLuint shaderID)
 	glm::vec2 upper_right(20.0, 35.0);
 	float front_plane = 1.0f;
 	float back_plane = -35.0f; */
-	// Eksempel 5
+	/* Eksempel 5
 	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
 	glm::vec3 vpn( 1.0f, 0.0f, 1.0f);
 	glm::vec3 vup( -sin(10.0 * M_PI / 180.0), cos(10.0 * M_PI / 180.0), sin(10.0 * M_PI / 180.0));
@@ -196,22 +197,90 @@ static void drawScene(GLuint shaderID)
 	glm::vec2 lower_left( -20.0, -5.0);
 	glm::vec2 upper_right(20.0, 35.0);
 	float front_plane = 1.0f;
-	float back_plane = -35.0f;
+	float back_plane = -35.0f; */
+
+	// Triangle Camera parameters
+	glm::vec3 vrp(0.0f, 0.0f, 125.0f);
+	glm::vec3 vpn( 0.0f, 0.0f, 1.0f);
+	glm::vec3 vup( 0.0f, 1.0f, 0.0f);
+	glm::vec3 prp(0.0f, 0.0f, 200.0f);
+	glm::vec2 lower_left( -25.0f, -25.0f);
+	glm::vec2 upper_right(25.0f, 25.0f);
+	float front_plane = 10.0f;
+	float back_plane = -800.0f;
 
 	// Init the camera with the defined values
 	Camera *camera = new Camera(vrp, vpn, vup, prp, lower_left, upper_right, front_plane, back_plane, 800, 600);
 
-    // Set the shader matrix
-    glm::mat4 tMat = camera->CurrentTransformationMatrix();
+    // Set the shader matrixes 
     GLuint dir;
     dir = glGetUniformLocation(shaderID, "uModelMatrix");
     if (dir >= 0){
-      glUniformMatrix4fv(dir, 1, GL_FALSE, &tMat[0][0]);
+      glUniformMatrix4fv(dir, 1, GL_FALSE, &camera->ViewOrientation()[0][0]);
     }
-		
+	glm::mat3 normalvectorMatrix = glm::inverseTranspose(glm::mat3(camera->ViewOrientation()));
+    dir = glGetUniformLocation(shaderID, "normalvectorMatrix");
+    if (dir >= 0){
+      glUniformMatrix3fv(dir, 1, GL_FALSE, &normalvectorMatrix[0][0]);
+    }
+    glm::mat4 projectionMatrix = camera->ViewProjection();
+    dir = glGetUniformLocation(shaderID, "projectionMatrix");
+    if (dir >= 0){
+      glUniformMatrix4fv(dir, 1, GL_FALSE, &projectionMatrix[0][0]);
+    }
+	
+	// Material componants
+	glm::vec3 matAmbient = glm::vec3(0.0f, 1.0f, 0.0f) * 0.5f;
+	glm::vec3 matDiffuse = glm::vec3(0.0f, 1.0f, 0.0f) * 0.75f;
+	glm::vec3 matSpecular = glm::vec3(1.0f, 1.0f, 1.0f) * 0.9f;
+	float matShiny = 100.0f;
+	// light componants
+	glm::vec4 lightPos = glm::vec4(266.395325f, 274.291267f, -43.696048f, 1.0f);
+	glm::vec3 lightIntensity = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 lightAmbient = glm::vec3(0.5f, 0.5f, 0.5f);
+	glm::vec3 lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 lightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+	// Send values to shader-program
+	dir = glGetUniformLocation(shaderID, "matAmbient");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&matAmbient);
+	}
+	dir = glGetUniformLocation(shaderID, "matDiffuse");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&matDiffuse);
+	}
+	dir = glGetUniformLocation(shaderID, "matSpecular");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&matSpecular);
+	}
+	dir = glGetUniformLocation(shaderID, "lightIntensity");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&lightIntensity);
+	}
+	dir = glGetUniformLocation(shaderID, "lightAmbient");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&lightAmbient);
+	}
+	dir = glGetUniformLocation(shaderID, "lightDiffuse");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&lightDiffuse);
+	}
+	dir = glGetUniformLocation(shaderID, "lightSpecular");
+	if (dir >= 0){
+		glUniform3fv(dir, 1, (float*)&lightSpecular);
+	}	
+	dir = glGetUniformLocation(shaderID, "lightPos");
+	if (dir >= 0){
+		glUniform4fv(dir, 1, (float*)&lightPos);
+	}	
+	dir = glGetUniformLocation(shaderID, "matShiny");
+	if (dir >= 0){
+		glUniform1f(dir, matShiny);
+	}
 	// Draw the house
-	House *house = new House();
-	house->init();
+	Triangle *triangle = new Triangle();
+	triangle->init();
 
 	/*
 	DotMaker::instance()->setColor(1.0f, 1.0f, 1.0f);

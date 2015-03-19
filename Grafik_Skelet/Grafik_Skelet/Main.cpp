@@ -229,12 +229,12 @@ static void drawScene(GLuint shaderID)
       glUniformMatrix4fv(dir, 1, GL_FALSE, &projectionMatrix[0][0]);
     }
 	
-	// Material componants
+	// Material components
 	glm::vec3 matAmbient = glm::vec3(0.0f, 1.0f, 0.0f) * 0.5f;
 	glm::vec3 matDiffuse = glm::vec3(0.0f, 1.0f, 0.0f) * 0.75f;
 	glm::vec3 matSpecular = glm::vec3(1.0f, 1.0f, 1.0f) * 0.9f;
-	float matShiny = 100.0f;
-	// light componants
+	float matShiny = 20.0f;
+	// light components
 	glm::vec4 lightPos = glm::vec4(266.395325f, 274.291267f, -43.696048f, 1.0f);
 	glm::vec3 lightIntensity = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 lightAmbient = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -409,3 +409,4 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+

@@ -16,15 +16,18 @@ uniform vec3 matDiffuse;
 uniform vec3 matSpecular;
 uniform float matShiny;
 
+// Matrices
 uniform mat4 uModelMatrix;
 uniform mat3 normalvectorMatrix;
 uniform mat4 projectionMatrix;
 
-out vec4 curPixel;
+out vec4 curVert;
 out vec3 curNormalVec;
 
 void main() {
-    curPixel = uModelMatrix * vec4(vertPosition, 1.0f);
+    // Compute position of the current vertex
+    curVert = uModelMatrix * vec4(vertPosition, 1.0f);
+    // Compute the current normal vector
     curNormalVec = normalize(normalvectorMatrix * vertReflect);
 
     gl_Position = projectionMatrix * uModelMatrix * vec4(vertPosition.xyz, 1.0);

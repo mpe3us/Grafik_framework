@@ -37,6 +37,8 @@ using std::ifstream;
 #include "glmutils.h"
 #include "Camera.h"
 #include "Triangle.h"
+#include "bezierpatch.h"
+#include "readbezierpatches.h"
 
 // Struct for a coordinate/pixel
 struct point_xy {
@@ -140,6 +142,125 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
 	}
 }
 
+// Returns an array with all triangles and normals in the given Bezierpatch
+static std::vector<std::vector<glm::vec3>> trianglesInPatch(std::vector<BezierPatch> patches)
+{
+    // Array of all triangles
+	std::vector<glm::vec3> G_controlpoints;
+	// Array of all normals 
+	std::vector<glm::vec3> G_controlpointsNormals;
+	
+	// Double for-loop which finds every square in the patch and computes the two triangles in the square including the normals
+	for (int n=0; n<patches.size(); n++)
+	{
+		for (int i=1; i<4; i++) {
+			for (int j=1; j<4; j++) {
+				// First triangle in the current surface
+				G_controlpoints.push_back(patches[n][i][j]);
+				G_controlpoints.push_back(patches[n][i+1][j]);
+				G_controlpoints.push_back(patches[n][i+1][j+1]);
+				// Compute the first set of normal vectors for shading purposes
+				G_controlpointsNormals.push_back( glm::cross(patches[n][i+1][j]-patches[n][i][j], patches[n][i+1][j+1]-patches[n][i][j]) );
+				G_controlpointsNormals.push_back( glm::cross(patches[n][i+1][j+1]-patches[n][i+1][j], patches[n][i][j]-patches[n][i+1][j]) );
+				G_controlpointsNormals.push_back( glm::cross(patches[n][i][j]-patches[n][i+1][j+1], patches[n][i+1][j]-patches[n][i+1][j+1]) );
+
+				// Second triangle in the current surface
+				G_controlpoints.push_back(patches[n][i][j]);
+				G_controlpoints.push_back(patches[n][i+1][j+1]);
+				G_controlpoints.push_back(patches[n][i][j+1]);
+				// Compute the second set of normal vectors for shading purposes
+				G_controlpointsNormals.push_back( glm::cross(patches[n][i+1][j+1]-patches[n][i][j], patches[n][i][j+1]-patches[n][i][j]) );
+				G_controlpointsNormals.push_back( glm::cross(patches[n][i][j+1]-patches[n][i+1][j+1], patches[n][i][j]-patches[n][i+1][j+1]) );
+				G_controlpointsNormals.push_back( glm::cross(patches[n][i][j]-patches[n][i][j+1], patches[n][i+1][j+1]-patches[n][i][j+1]) );
+			}
+		}
+	}
+	// Array of arrays with all triangles and normals
+	std::vector<std::vector<glm::vec3>> patchPointsAndNormals;
+	patchPointsAndNormals.push_back(G_controlpoints);
+	patchPointsAndNormals.push_back(G_controlpointsNormals);
+
+	return patchPointsAndNormals;
+}
+
+// Visualization of bezier surfaces using the SubDivision algorithm 
+static void bezierSubDivision(int subdivisions, const char *filename)
+{
+	std::vector<BezierPatch> bezierPatches;		
+	// Read data file containing the Bezierpatch(es)
+	ReadBezierPatches(filename, bezierPatches);
+		
+	// Compute the offset for the DLB patch/matrix
+	glm::mat4x4 DLB(glm::vec4(8.0f, 0.0f, 0.0f, 0.0f),
+					glm::vec4(4.0f, 4.0f, 0.0f, 0.0f),
+					glm::vec4(2.0f, 4.0f, 2.0f, 0.0f),
+					glm::vec4(1.0f, 3.0f, 3.0f, 1.0f));
+	DLB /= 8.0f;
+	// Compute the offset for the DRB patch/matrix
+	glm::mat4x4 DRB(glm::vec4(1.0f, 3.0f, 3.0f, 1.0f),
+					glm::vec4(0.0f, 2.0f, 4.0f, 2.0f),
+					glm::vec4(0.0f, 0.0f, 4.0f, 4.0f),
+					glm::vec4(0.0f, 0.0f, 0.0f, 8.0f));
+	DRB /= 8.0f;
+
+	std::vector<BezierPatch> subPatches;
+	// Creates an array containing all sub-bezierpatches depending on the given number of subdivisions
+	// 0 subdivisions means that the original patch is maintained and no subdivisions is performed at all
+	while (subdivisions > 0)
+	{
+		for (int i=0; i<bezierPatches.size(); i++)
+		{
+			// Compute the 4 subpatches
+			BezierPatch G11 = glm::transpose(DLB) * bezierPatches[i] * DLB;
+			BezierPatch G12 = glm::transpose(DRB) * bezierPatches[i] * DLB;
+			BezierPatch G21 = glm::transpose(DLB) * bezierPatches[i] * DRB;
+			BezierPatch G22 = glm::transpose(DRB) * bezierPatches[i] * DRB; 
+			// Push the 4 subpatches to the array
+			subPatches.push_back(G11);
+			subPatches.push_back(G12);
+			subPatches.push_back(G21);
+			subPatches.push_back(G22);
+		}
+		// Override the previous array which makes it possible to make further subdivisions if needed
+		bezierPatches = subPatches;
+		subPatches.clear();
+		subdivisions--;
+	}
+	
+	std::vector<std::vector<glm::vec3>> patchPointsAndNormals;
+	std::vector<glm::vec3> Gtotal_controlpoints;
+	std::vector<glm::vec3> Gtotal_normalvectors;
+	// Collect triangles and normals from all patches and put them in the same array
+	patchPointsAndNormals = trianglesInPatch(bezierPatches);
+	// Splitting the normals triangles in two arrays
+	Gtotal_controlpoints = patchPointsAndNormals[0];
+	Gtotal_normalvectors = patchPointsAndNormals[1];
+	
+	// Genereate Vertex Array Object and buffers
+	GLuint vao[1], vbo[2];
+	glGenVertexArrays(1, vao);
+	glGenBuffers(2, vbo); 
+
+	// Bind the vertices (triangles)
+	glBindVertexArray(vao[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, Gtotal_controlpoints.size() * 3 * sizeof(GLfloat), &Gtotal_controlpoints[0], GL_STATIC_DRAW);	
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	// Bind the vertices (normals)
+	glBindVertexArray(vao[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, Gtotal_normalvectors.size() * 3 * sizeof(GLfloat), &Gtotal_normalvectors[0], GL_STATIC_DRAW);	
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+
+	// Now draw the all vertices
+	glDrawArrays(GL_TRIANGLES, 0, Gtotal_normalvectors.size());
+	glDisableVertexAttribArray(0);
+
+}
+
 static void drawScene(GLuint shaderID)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -152,62 +273,15 @@ static void drawScene(GLuint shaderID)
 
 	glUseProgram(shaderID);
 
-	// Camera values
-	/* Eksempel 1 
-	glm::vec3 vrp(0.0f, 0.0f, 0.0f);
-	glm::vec3 vpn(0.0f, 0.0f, 1.0f);
-	glm::vec3 vup(0.0f, 1.0f, 0.0f);
-	glm::vec3 prp(8.0f, 6.0f, 84.0f);
-	glm::vec2 lower_left(-50.0f, -50.0f);
-	glm::vec2 upper_right(50.0f, 50.0f);
-	float front_plane = 60.0f;
-	float back_plane = 25.0f; 
-	/* Eksempel 2
-	glm::vec3 vrp(0.0f, 0.0f, 54.0f);
-	glm::vec3 vpn(0.0f, 0.0f, 1.0f);
-	glm::vec3 vup(0.0f, 1.0f, 0.0f);
-	glm::vec3 prp(8.0f, 6.0f, 30.0f);
-	glm::vec2 lower_left( -1.0, -1.0);
-	glm::vec2 upper_right(17.0, 17.0);
-	float front_plane = 1.0f;
-	float back_plane = -35.0f; */
-	/* Eksempel 3
-	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
-	glm::vec3 vpn( 0.0f, 0.0f, 1.0f);
-	glm::vec3 vup( 0.0f, 1.0f, 0.0f);
-	glm::vec3 prp(20.0f, 25.0f, 20.0f);
-	glm::vec2 lower_left( -20.0, -5.0);
-	glm::vec2 upper_right(20.0, 35.0);
-	float front_plane = 1.0f;
-	float back_plane = -35.0f; */
-	/* Eksempel 4
-	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
-	glm::vec3 vpn( 1.0f, 0.0f, 1.0f);
-	glm::vec3 vup( 0.0f, 1.0f, 0.0f);
-	glm::vec3 prp( 0.0f, 25.0f, 20.0f * sqrt(2.0));
-	glm::vec2 lower_left( -20.0, -5.0);
-	glm::vec2 upper_right(20.0, 35.0);
-	float front_plane = 1.0f;
-	float back_plane = -35.0f; */
-	/* Eksempel 5
-	glm::vec3 vrp(16.0f, 0.0f, 54.0f);
-	glm::vec3 vpn( 1.0f, 0.0f, 1.0f);
-	glm::vec3 vup( -sin(10.0 * M_PI / 180.0), cos(10.0 * M_PI / 180.0), sin(10.0 * M_PI / 180.0));
-	glm::vec3 prp( 0.0f, 25.0f, 20.0f * sqrt(2.0));
-	glm::vec2 lower_left( -20.0, -5.0);
-	glm::vec2 upper_right(20.0, 35.0);
-	float front_plane = 1.0f;
-	float back_plane = -35.0f; */
-
-	// Triangle Camera parameters
-	glm::vec3 vrp(0.0f, 0.0f, 125.0f);
-	glm::vec3 vpn( 0.0f, 0.0f, 1.0f);
-	glm::vec3 vup( 0.0f, 1.0f, 0.0f);
-	glm::vec3 prp(0.0f, 0.0f, 200.0f);
-	glm::vec2 lower_left( -25.0f, -25.0f);
-	glm::vec2 upper_right(25.0f, 25.0f);
-	float front_plane = 10.0f;
-	float back_plane = -800.0f;
+	// Camera parameters
+	glm::vec3 vrp(5.0f, 0.0f, 5.0f);
+	glm::vec3 vpn(cosf((30.0f*M_PI)/180.0f), 0.0f, sinf((30.0f*M_PI)/180.0f));
+	glm::vec3 vup(0.0f, 0.0f, 1.0f);
+	glm::vec3 prp(0.0f, 0.0f, 50.0f);
+	glm::vec2 lower_left( -4.0f, -4.0f);
+	glm::vec2 upper_right(4.0f, 4.0f);
+	float front_plane = 5.0f;
+	float back_plane = -10.0f; 
 
 	// Init the camera with the defined values
 	Camera *camera = new Camera(vrp, vpn, vup, prp, lower_left, upper_right, front_plane, back_plane, 800, 600);
@@ -217,7 +291,7 @@ static void drawScene(GLuint shaderID)
     dir = glGetUniformLocation(shaderID, "uModelMatrix");
     if (dir >= 0){
       glUniformMatrix4fv(dir, 1, GL_FALSE, &camera->ViewOrientation()[0][0]);
-    }
+    }	
 	glm::mat3 normalvectorMatrix = glm::inverseTranspose(glm::mat3(camera->ViewOrientation()));
     dir = glGetUniformLocation(shaderID, "normalvectorMatrix");
     if (dir >= 0){
@@ -278,29 +352,10 @@ static void drawScene(GLuint shaderID)
 	if (dir >= 0){
 		glUniform1f(dir, matShiny);
 	}
-	// Draw the house
-	Triangle *triangle = new Triangle();
-	triangle->init();
 
-	/*
-	DotMaker::instance()->setColor(1.0f, 1.0f, 1.0f);
-	DotMaker::instance()->setScene(800, 600, 15, true);
-	DotMaker::instance()->setColor(1.0f, 0.0f, 0.0f);
-	*/
-
-	// Tests
-	//drawTriangle(0,0, 10,0 ,10,10); // Horizontal triangle with "peak" at top AND vertical edge
-	//drawTriangle(0,0, 10,0 ,5,10); // Horizontal triangle with "peak" at top
-	//drawTriangle(1,10,10,10,5,1); // Horizontal triangle with "peak" at bottom
-	//drawTriangle(1,5, 11,1 ,11,10); // Triangle with vertical edge
+	// Draw the specified object using the SubDivision algorithm
+	bezierSubDivision(0, "./teapot.data");
 	
-	//drawTriangle(1,1 , 11,1 , 7,10); // The "white" triangle
-	//drawTriangle(1,10 , 11,10 , 5,1); // The "green" triangle 
-	//drawTriangle(11,10 , 1,5 , 5,1); // The "red" triangle
-	//drawTriangle(1,1 , 11,3 , 5,10); // The triangle from the slides ("blue" triangle)
-	//drawTriangle(1,1 , 7,1 , 1,8); // Horizontal triangle with "peak" at top AND vertical edge
-	//drawTriangle(1,8 , 7,8 , 7,1); // Horizontal triangle with "peak" at bottom AND vertical edge
-
 	glFlush();
 }
 
@@ -323,7 +378,6 @@ static int fileRead(std::string const& filename, std::string* result)
 int main(int argc, char *argv[])
 {
 	//glewExperimental = true;
-
 	if(SDL_Init(SDL_INIT_VIDEO) < 0)
 		return -1;
 	

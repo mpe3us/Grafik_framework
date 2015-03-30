@@ -47,6 +47,12 @@
     <ClInclude Include="Triangle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bezierpatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="readbezierpatches.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DotMaker.cpp">
@@ -74,6 +80,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Triangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bezierpatch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="readbezierpatches.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

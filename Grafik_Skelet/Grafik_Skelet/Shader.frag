@@ -36,7 +36,8 @@ vec3 phongReflection() {
 }
 
 void main() {
-    colourOut = vec4(phongReflection(), 1.0);
+   colourOut = vec4(phongReflection(), 1.0);
+   //colourOut = vec4(1.0, 0.0, 0.0, 1.0);
 
 
 }

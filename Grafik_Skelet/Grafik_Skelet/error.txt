@@ -4,3 +4,14 @@ Fatal: Error compiling shader type 35633: 0(28) : error C1008: undefined variabl
 
 Fatal: Error compiling shader type 35632: 0(28) : error C1008: undefined variable "curNormal_vec"
 
+Fatal: Error compiling shader type 35632: 0(31) : error C0000: syntax error, unexpected type identifier, expecting ',' or ';' at token "vec3"
+0(37) : warning C7022: unrecognized profile specifier "glm"
+
+Fatal: Error compiling shader type 35632: 0(31) : error C0000: syntax error, unexpected type identifier, expecting ',' or ';' at token "vec3"
+0(37) : warning C7022: unrecognized profile specifier "glm"
+
+Fatal: Error compiling shader type 35632: 0(37) : warning C7022: unrecognized profile specifier "glm"
+0(37) : error C7563: assignment to uniform matDiffuse
+
+Fatal: Error compiling shader type 35632: 0(37) : error C7563: assignment to uniform matDiffuse
+

@@ -142,6 +142,149 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3)
 	}
 }
 
+// Surfaces and normals for the Klein Bottle
+glm::vec3 klein_bot(float u, float v) {
+  float x = (2.5f + 1.5f * cosf (v)) * cosf(u);
+  float y = (2.5f + 1.5f * cosf(v)) * sinf(u);
+  float z = -2.5f * sinf(v);
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_bot_n(float u, float v) {
+  float x = (-6.25f - 3.75f * cosf(v)) * cosf(v) * cosf(u);
+  float y = (-6.25f - 3.75f * cosf(v)) * cosf(v) * sinf(u);
+  float z = (3.75f + 2.25f * cosf(v)) * sinf(v);
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_handle(float u, float v) {
+  float x = 2.0f - 2.0f * cosf(v) + sinf(u);
+  float y = cosf(u);
+  float z = 3.0f * v;
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_handle_n(float u, float v) {
+  float x = -3.0f * sinf(u);
+  float y = -3.0f * cosf(u);
+  float z = 2.0f * sinf(u) * sinf(v);
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_top(float u, float v) {
+  float x = 2.0f + (2.0f + cosf(u)) * cosf (v);
+  float y = sinf(u);
+  float z = 3.0f * M_PI + (2.0f + cosf(u)) * sinf(v);
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_top_n(float u, float v) {
+  float x = (2.0f + cosf(u)) * cosf(u) * cosf(v);
+  float y = (2.0f + cosf(u)) * sinf(u);
+  float z = (2.0f + cosf(u)) * cosf(u) * sinf(v);
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_middle(float u, float v) {
+  float x = (2.5f + 1.5f * cosf(v)) * cosf(u);
+  float y = (2.5f + 1.5f * cosf(v)) * sinf(u);
+  float z = 3.0f * v;
+  return glm::vec3(x,y,z);
+}
+glm::vec3 klein_middle_n(float u, float v) {
+  float x = (7.5f + 4.5f * cosf(v)) * cosf(u);
+  float y = (7.5f + 4.5f * cosf(v)) * sinf(u);
+  float z = (3.75f + 2.25 * cosf(v)) * sinf(u);
+  return glm::vec3(x,y,z);
+}
+
+// Data for Dini's Surface
+float a = 1.5f;
+float b = 0.5f;
+// The d(u, v) function which represents a surface
+glm::vec3 dini_d(float u, float v){
+  float x = a * cosf(u) * sinf(v);
+  float y = a * sinf(u) * sinf(v);
+  float z = a * (cosf(v) + log(tanf(0.5f * v))) + b*u;
+  return glm::vec3(x,y,z);
+}
+// The n(u, v) function which represents the normal of Dini's surface
+glm::vec3 dini_n(float u, float v){
+  float x1 = -a * sinf(u) * sinf(v);
+  float y1 = a * cosf(u) * sinf(v);
+  float z1 = b;
+
+  float x2 = a * cosf(u) * cosf(v);
+  float y2 = a * sinf(u) * cosf(v);
+  float z2 = a * ( ((0.5f) / (sinf(0.5 * v) * cosf(0.5f * u) )) - sinf(v) );
+
+  return glm::cross(glm::vec3(x1,y1,z1), glm::vec3(x2,y2,z2));
+}
+
+// Visualization of a general surface using the Sampling algorithm 
+void generalSampling(
+  glm::vec3 (*func[]  ) (float, float),  // Function(s) for position
+  glm::vec3 (*Nfunc[] ) (float, float),  // Function(s) for normals
+  float umin, float umax, // min/max values for u
+  float vmin, float vmax, // min/max values for v
+  int M, int N, // How many samples there is to be performed
+  int funcCount ) // Total number of functions used to visualize the given object 
+{
+	// Array of all triangles
+	std::vector <glm::vec3> vertices;
+    // Array of all normals 
+	std::vector <glm::vec3> normals;
+
+	// Computes the initial values used for computing the points
+	float deltaU, deltaV, u, v;
+	deltaU = (umax - umin)/N;
+	deltaV = (vmax - vmin)/M;
+	u = umin;
+	v = vmin;
+	// Loop which finds every square in the surfaces and computes the two triangles in the square including the normals
+	for (int i = 0; i < funcCount; i++) 
+	{
+		for (u = umin; u < umax; u += deltaU) 
+		{
+			for (v = vmin; v < vmax; v += deltaV) 
+			{
+				// The first triangle in the current surface
+				vertices.push_back(func[i](u, v));
+				vertices.push_back(func[i](u + deltaU, v));
+				vertices.push_back(func[i](u, v + deltaV));
+				// Compute the first set of normal vectors for shading purposes
+				normals.push_back(Nfunc[i](u, v));
+				normals.push_back(Nfunc[i](u + deltaU, v));
+				normals.push_back(Nfunc[i](u, v + deltaV));
+				// The second triangle in the current surface
+				vertices.push_back(func[i](u + deltaU, v));
+				vertices.push_back(func[i](u + deltaU, v + deltaV));
+				vertices.push_back(func[i](u, v + deltaV));
+				// Compute the second set of normal vectors for shading purposes
+				normals.push_back(Nfunc[i](u + deltaU, v));
+				normals.push_back(Nfunc[i](u + deltaU, v + deltaV));
+				normals.push_back(Nfunc[i](u, v + deltaV));
+			}
+		}
+	}
+
+	// Now draw the object
+	// Genereate Vertex Array Object and buffers
+	GLuint vao[1], vbo[2];
+	glGenVertexArrays(1, vao);
+	glGenBuffers(2, vbo); 
+	// Bind the vertices (triangles)
+	glBindVertexArray(vao[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * 3 * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);	
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	// Bind the vertices (normals)
+	glBindVertexArray(vao[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * 3 * sizeof(GLfloat), &normals[0], GL_STATIC_DRAW);	
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+	// Now draw the all vertices
+	glDrawArrays(GL_TRIANGLES, 0, normals.size());
+	glDisableVertexAttribArray(0);
+
+}
+
 // Returns an array with all triangles and normals in the given Bezierpatch
 static std::vector<std::vector<glm::vec3>> trianglesInPatch(std::vector<BezierPatch> patches)
 {
@@ -150,31 +293,27 @@ static std::vector<std::vector<glm::vec3>> trianglesInPatch(std::vector<BezierPa
 	// Array of all normals 
 	std::vector<glm::vec3> G_controlpointsNormals;
 	
-	// Double for-loop which finds every square in the patch and computes the two triangles in the square including the normals
+	// Loop which finds every square in the patches and computes the two triangles in the square including the normals
 	for (int n=0; n<patches.size(); n++)
 	{
-		for (int i=1; i<4; i++) {
-			for (int j=1; j<4; j++) {
-				// First triangle in the current surface
-				G_controlpoints.push_back(patches[n][i][j]);
-				G_controlpoints.push_back(patches[n][i+1][j]);
-				G_controlpoints.push_back(patches[n][i+1][j+1]);
-				// Compute the first set of normal vectors for shading purposes
-				G_controlpointsNormals.push_back( glm::cross(patches[n][i+1][j]-patches[n][i][j], patches[n][i+1][j+1]-patches[n][i][j]) );
-				G_controlpointsNormals.push_back( glm::cross(patches[n][i+1][j+1]-patches[n][i+1][j], patches[n][i][j]-patches[n][i+1][j]) );
-				G_controlpointsNormals.push_back( glm::cross(patches[n][i][j]-patches[n][i+1][j+1], patches[n][i+1][j]-patches[n][i+1][j+1]) );
-
-				// Second triangle in the current surface
-				G_controlpoints.push_back(patches[n][i][j]);
-				G_controlpoints.push_back(patches[n][i+1][j+1]);
-				G_controlpoints.push_back(patches[n][i][j+1]);
-				// Compute the second set of normal vectors for shading purposes
-				G_controlpointsNormals.push_back( glm::cross(patches[n][i+1][j+1]-patches[n][i][j], patches[n][i][j+1]-patches[n][i][j]) );
-				G_controlpointsNormals.push_back( glm::cross(patches[n][i][j+1]-patches[n][i+1][j+1], patches[n][i][j]-patches[n][i+1][j+1]) );
-				G_controlpointsNormals.push_back( glm::cross(patches[n][i][j]-patches[n][i][j+1], patches[n][i+1][j+1]-patches[n][i][j+1]) );
-			}
-		}
+		// The first triangle
+		G_controlpoints.push_back(patches[n][1][1]);
+		G_controlpoints.push_back(patches[n][1][4]);
+		G_controlpoints.push_back(patches[n][4][4]);
+		// Compute the first set of normal vectors for shading purposes
+		G_controlpointsNormals.push_back( glm::normalize(glm::cross(patches[n][2][1]-patches[n][1][1], patches[n][1][2]-patches[n][1][1])) );
+		G_controlpointsNormals.push_back( glm::normalize(glm::cross(patches[n][1][3]-patches[n][1][4], patches[n][2][4]-patches[n][1][4])) );
+		G_controlpointsNormals.push_back( glm::normalize(glm::cross(patches[n][3][4]-patches[n][4][4], patches[n][4][3]-patches[n][4][4])) );
+		// The second triangle
+		G_controlpoints.push_back(patches[n][1][1]);
+		G_controlpoints.push_back(patches[n][4][4]);
+		G_controlpoints.push_back(patches[n][4][1]);
+		// Compute the second set of normal vectors for shading purposes
+		G_controlpointsNormals.push_back( glm::normalize(glm::cross(patches[n][2][1]-patches[n][1][1], patches[n][1][2]-patches[n][1][1])) );
+		G_controlpointsNormals.push_back( glm::normalize(glm::cross(patches[n][3][4]-patches[n][4][4], patches[n][4][3]-patches[n][4][4])) );
+		G_controlpointsNormals.push_back( glm::normalize(glm::cross(patches[n][4][2]-patches[n][4][1], patches[n][3][1]-patches[n][4][1])) );
 	}
+
 	// Array of arrays with all triangles and normals
 	std::vector<std::vector<glm::vec3>> patchPointsAndNormals;
 	patchPointsAndNormals.push_back(G_controlpoints);
@@ -236,25 +375,23 @@ static void bezierSubDivision(int subdivisions, const char *filename)
 	Gtotal_controlpoints = patchPointsAndNormals[0];
 	Gtotal_normalvectors = patchPointsAndNormals[1];
 	
+	// Now draw the object
 	// Genereate Vertex Array Object and buffers
 	GLuint vao[1], vbo[2];
 	glGenVertexArrays(1, vao);
 	glGenBuffers(2, vbo); 
-
 	// Bind the vertices (triangles)
 	glBindVertexArray(vao[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glBufferData(GL_ARRAY_BUFFER, Gtotal_controlpoints.size() * 3 * sizeof(GLfloat), &Gtotal_controlpoints[0], GL_STATIC_DRAW);	
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
-
 	// Bind the vertices (normals)
 	glBindVertexArray(vao[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 	glBufferData(GL_ARRAY_BUFFER, Gtotal_normalvectors.size() * 3 * sizeof(GLfloat), &Gtotal_normalvectors[0], GL_STATIC_DRAW);	
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
-
 	// Now draw the all vertices
 	glDrawArrays(GL_TRIANGLES, 0, Gtotal_normalvectors.size());
 	glDisableVertexAttribArray(0);
@@ -269,17 +406,23 @@ static void drawScene(GLuint shaderID)
 	glClearDepth(-1.0f);
 	glDepthFunc(GL_GREATER);
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 	glUseProgram(shaderID);
 
 	// Camera parameters
-	glm::vec3 vrp(5.0f, 0.0f, 5.0f);
-	glm::vec3 vpn(cosf((30.0f*M_PI)/180.0f), 0.0f, sinf((30.0f*M_PI)/180.0f));
+	/*glm::vec3 vrp(5.0f, 0.0f, 5.0f); // front view
+	glm::vec3 vpn(cosf((30.0f*M_PI)/180.0f), 0.0f, sinf((30.0f*M_PI)/180.0f)); // front view */
+	/*glm::vec3 vrp(5.0f, 0.0f, 6.0f); // Spin view
+    glm::vec3 vpn(cosf((30.0f*M_PI)/180.0f), sinf(SDL_GetTicks()/1000.0f), sinf((30.0f*M_PI)/180.0f)); // Spin view */
+	/*glm::vec3 vrp(5.0f, 0.0f, 5.0f); // side view
+    glm::vec3 vpn(cosf((30.0f*M_PI)/180.0f), 10.0f, sinf((30.0f*M_PI)/180.0f)); // side view */
+	glm::vec3 vrp(5.0f, 0.0f, 5.0f); 
+	glm::vec3 vpn(0.9f, 0.9f, sinf((30.0f*M_PI)/180.0f)); 
 	glm::vec3 vup(0.0f, 0.0f, 1.0f);
 	glm::vec3 prp(0.0f, 0.0f, 50.0f);
-	glm::vec2 lower_left( -4.0f, -4.0f);
-	glm::vec2 upper_right(4.0f, 4.0f);
+	glm::vec2 lower_left( -6.0f, -6.0f);
+	glm::vec2 upper_right(6.0f, 6.0f);
 	float front_plane = 5.0f;
 	float back_plane = -10.0f; 
 
@@ -304,12 +447,14 @@ static void drawScene(GLuint shaderID)
     }
 	
 	// Material components
-	glm::vec3 matAmbient = glm::vec3(0.0f, 1.0f, 0.0f) * 0.5f;
-	glm::vec3 matDiffuse = glm::vec3(0.0f, 1.0f, 0.0f) * 0.75f;
+	glm::vec3 matAmbient = glm::vec3(0.0f, 0.75f, 1.0f) * 0.5f;
+	glm::vec3 matDiffuse = glm::vec3(0.0f, 0.75f, 1.0f) * 0.75f;
 	glm::vec3 matSpecular = glm::vec3(1.0f, 1.0f, 1.0f) * 0.9f;
 	float matShiny = 20.0f;
 	// light components
-	glm::vec4 lightPos = glm::vec4(266.395325f, 274.291267f, -43.696048f, 1.0f);
+	//glm::vec4 lightPos = glm::vec4(266.395325f, 274.291267f, -43.696048f, 1.0f);
+	glm::vec4 lightPos = glm::vec4(250.0f, 300.0f, -20.0f, 1.0f);
+	//glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 80.0f, 1.0f); // top light
 	glm::vec3 lightIntensity = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 lightAmbient = glm::vec3(0.5f, 0.5f, 0.5f);
 	glm::vec3 lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -354,7 +499,29 @@ static void drawScene(GLuint shaderID)
 	}
 
 	// Draw the specified object using the SubDivision algorithm
-	bezierSubDivision(0, "./teapot.data");
+	bezierSubDivision(4, "./teapot.data");
+
+	// Sampling algorithm data for The Klein Bottle
+	glm::vec3 (*klein_f[4]) (float u, float v);
+    glm::vec3 (*klein_n[4]) (float u, float v);
+	klein_f[0] = klein_bot;
+    klein_n[0] = klein_bot_n;
+	klein_f[1] = klein_handle;
+    klein_n[1] = klein_handle_n;
+    klein_f[2] = klein_top;
+    klein_n[2] = klein_top_n;
+	klein_f[3] = klein_middle;
+    klein_n[3] = klein_middle_n;
+
+	// Sampling algorithm data for Dini's Surface
+    glm::vec3 (*dini_fs[4]) (float u, float v);
+    glm::vec3 (*dini_ds[4]) (float u, float v);
+    dini_fs[0] = dini_d;
+    dini_ds[0] = dini_n;
+
+	// Draw the specified object using the Sampling algorithm
+	//generalSampling(klein_f, klein_n, 0.0f, M_PI*2.0f, 0.0f, M_PI, 50.0f, 50.0f, 4); // Klein Bottle
+	//generalSampling(dini_fs, dini_ds, 0.0f, M_PI*6.0f, 0.001f, 2.0f, 50.0f, 50.0f, 1); // Dini's Surface
 	
 	glFlush();
 }

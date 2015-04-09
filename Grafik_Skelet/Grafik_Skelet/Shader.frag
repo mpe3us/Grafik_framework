@@ -26,12 +26,16 @@ in vec3 curNormalVec;
 // Function for Phong's Reflection Model 
 vec3 phongReflection() {
 	vec4 lightPosTransformation = uModelMatrix * lightPos;
-	vec3 n = normalize( curNormalVec );
+  // Invert the normals depending on the camera facing
+	vec3 n = gl_FrontFacing ? -normalize ( curNormalVec ) : normalize ( curNormalVec );
 	vec3 s = normalize( vec3(lightPosTransformation - curVert) );
 	vec3 v = normalize( vec3(-curVert) );
 	vec3 r = reflect( -s, n );
+  vec3 matDiffuseNew = matDiffuse;
+  // Make different colors for the front- and backplane
+  matDiffuseNew  = gl_FrontFacing ?  matDiffuse : (glm::vec3(1.0, 1.0, 1.0) - matDiffuse); 
 	return (matAmbient * lightAmbient + 
-	        matDiffuse * lightDiffuse * max( dot(s,n), 0.0 ) +
+	        matDiffuseNew * lightDiffuse * max( dot(s,n), 0.0 ) +
 			    matSpecular * lightSpecular * pow(max(dot(r,v), 0.0), matShiny));
 }
 
